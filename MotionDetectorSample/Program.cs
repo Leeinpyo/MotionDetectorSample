@@ -129,6 +129,11 @@ namespace MotionDetectorSample
                             // 카운트다운 중지
                             countdownTimer.Stop();
                         }
+                        else if (isRecording && timer.Enabled && (motionLevel <= 0.02))
+                        {
+                            // 프레임 저장
+                            videoWriter.WriteVideoFrame(eventArgs.Frame);
+                        }   
                     }
                 };
 
