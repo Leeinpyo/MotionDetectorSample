@@ -51,7 +51,7 @@ namespace MotionDetectorSample
                 var isRecording = false;
 
                 // 타이머 생성
-                var timer = new System.Timers.Timer(1 * 60 * 1000);
+                var timer = new System.Timers.Timer(10 * 1000);
                 timer.Elapsed += (sender, eventArgs) =>
                 {
                     // 녹화 중지
