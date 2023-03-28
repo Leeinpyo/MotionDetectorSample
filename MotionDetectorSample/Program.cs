@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using System.Timers;
+using System.Timers; // System.Timers.Timer 네임스페이스 추가
 using Accord.Video;
 using Accord.Video.DirectShow;
 using Accord.Vision.Motion;
 using Accord.Video.FFMPEG;
+using System.Threading;
 
 namespace MotionDetectorSample
 {
@@ -16,8 +17,29 @@ namespace MotionDetectorSample
             try
             {
                 // 카메라 디바이스 선택
+                VideoCaptureDevice videoDevice = null;
                 var videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-                var videoDevice = new VideoCaptureDevice(videoDevices[0].MonikerString);
+                var videoDeviceAvailable = new ManualResetEvent(false); // 새로운 ManualResetEvent 생성
+
+                var checkDevicesThread = new Thread(() =>
+                {
+                    foreach (FilterInfo device in videoDevices)
+                    {
+                        var tempDevice = new VideoCaptureDevice(device.MonikerString);
+                        if (!tempDevice.IsRunning)
+                        {
+                            videoDevice = tempDevice;
+                            videoDeviceAvailable.Set(); // 비디오 디바이스 사용 가능 상태 설정
+                            break;
+                        }
+                    }
+
+                    if (videoDevice == null)
+                    {
+                        Console.WriteLine("All video devices are in use.");
+                    }
+                });
+                checkDevicesThread.Start();
 
                 // 모션 디텍터 생성
                 var motionDetector = new MotionDetector(new TwoFramesDifferenceDetector(), null);
@@ -29,7 +51,7 @@ namespace MotionDetectorSample
                 var isRecording = false;
 
                 // 타이머 생성
-                var timer = new Timer(1 * 60 * 1000);
+                var timer = new System.Timers.Timer(1 * 60 * 1000);
                 timer.Elapsed += (sender, eventArgs) =>
                 {
                     // 녹화 중지
@@ -46,10 +68,10 @@ namespace MotionDetectorSample
                 var countdown = (int)timer.Interval / 1000;
 
                 // 카운트다운 타이머 생성
-                var countdownTimer = new Timer(1000);
+                var countdownTimer = new System.Timers.Timer(1000);
                 countdownTimer.Elapsed += (sender, eventArgs) =>
                 {
-                    if (countdown<=0)
+                    if (countdown <= 0)
                     {
                         Console.WriteLine("영상 저장됨");
                         countdownTimer.Stop();
@@ -113,21 +135,28 @@ namespace MotionDetectorSample
                 // 비디오 소스 시작
                 videoDevice.Start();
 
-                Console.WriteLine("Press any key to stop...");
-                Console.ReadKey();
-
-                // 비디오 소스 정지
-                videoDevice.Stop();
+                Console.WriteLine("Press ESC key to stop...");
+                while (true)
+                {
+                    var key = Console.ReadKey(true);
+                    if (key.Key == ConsoleKey.Escape)
+                    {
+                        break;
+                    }
+                }
 
                 // 비디오 파일 라이터 정리
                 if (isRecording)
                 {
                     videoWriter.Close();
                 }
+
+                // 비디오 소스 정지
+                videoDevice.Stop();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("An error occurred: " + ex.Message);
+                Console.WriteLine("An error occurred: " + ex.ToString());
             }
         }
     }
