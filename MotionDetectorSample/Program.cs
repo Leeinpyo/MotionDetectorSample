@@ -49,8 +49,16 @@ namespace MotionDetectorSample
                 var countdownTimer = new Timer(1000);
                 countdownTimer.Elapsed += (sender, eventArgs) =>
                 {
-                    countdown--;
-                    Console.WriteLine("카운트다운: " + countdown);
+                    if (countdown<=0)
+                    {
+                        Console.WriteLine("영상 저장됨");
+                        countdownTimer.Stop();
+                    }
+                    else
+                    {
+                        Console.WriteLine("카운트다운: " + countdown);
+                        countdown--;
+                    }
                 };
 
                 // 비디오 소스에 이벤트 핸들러 추가
@@ -82,7 +90,10 @@ namespace MotionDetectorSample
 
                         // 카운트다운 재설정
                         countdown = (int)timer.Interval / 1000;
-                        countdownTimer.Stop();
+                        if (countdownTimer.Enabled)
+                        {
+                            countdownTimer.Stop();
+                        }
                         countdownTimer.Start();
                     }
                     else
